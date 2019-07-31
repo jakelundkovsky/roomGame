@@ -2,5 +2,11 @@
 
 <h1>Home</h1>
 
+<ul>
+  <%rooms.forEach(function(room) {%>
+    <li><%= room %></li>
+  <%});%>
+</ul>
+
 
 <%- include('partials/footer'); %>
