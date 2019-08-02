@@ -2,11 +2,24 @@
 
 <h1>Home</h1>
 
+<h2>Your turn, <%= name %>.</h2><br/><br/>
+
+
+<h3>Available Rooms:</h3>
+
 <ul>
-  <%rooms.forEach(function(room) {%>
+  <%availRooms.forEach(function(room) {%>
     <li><%= room %></li>
   <%});%>
 </ul>
 
+
+<h3>Your Options:</h3>
+
+<ul>
+  <%options.forEach(function(option) {%>
+    <li><%= option %></li>
+  <%});%>
+</ul>
 
 <%- include('partials/footer'); %>
