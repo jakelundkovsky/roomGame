@@ -11,22 +11,23 @@ app.use(express.static("public"));
 
 let players = {
   0: new Player("Rossy", "Wall Street", null, false),
-  1: new Player("Tommy", "Wall Street", "Section 80", false),
+  1: new Player("Tommy", "Wall Street", null, false),
   2: new Player("Jake", "Section 80", null, false),
   3: new Player("Tanner", "Section 80", null, false),
-  4: new Player("Pledge", null, null, false)
 }; // convert to DB after testing
+
+let numPlayers = Object.keys(players).length;
 
 let rooms = {
   "Wall Street": new Room(2, []),
-  "Section 80": new Room(2, [1, 4])
+  "Section 80": new Room(2, [])
 }; // convert to DB after testing
 
 let resultingRooms = [];
 
 let roundsRemaining = 5;
 
-
+let i = 0; //iteration (mod by total # players)
 
 
 
@@ -41,7 +42,11 @@ let roundsRemaining = 5;
 //Sets up a turn for a player
 function getTurn(id) {
   let availRooms = roomsOnTheBoard(id);
-  let options = ["Pass"];
+  let options = [];
+
+  if (players[id].currRoom !== null) {
+    options.push("Pass");
+  }
 
   if (availRooms.length !== 0) {
     options.push("Change Rooms");
@@ -51,18 +56,24 @@ function getTurn(id) {
     options.push("Ink");
   }
 
+  //["Pass", "Change Rooms", "Ink"]
+
   return {
     id: id,
     name: players[id].name,
+    currRoom: players[id].currRoom,
     availRooms: availRooms,
-    options: options
+    options: options,
+    roundsRemaining: roundsRemaining,
+    rooms: rooms,
+    players: players
   };
 }
 
 
 //GET METHODS
 app.get('/', function(req, res) {
-    res.render("home", getTurn(0));
+    res.render("home", getTurn(i % numPlayers));
 });
 
 app.get('/about', function(req, res) {
@@ -71,6 +82,36 @@ app.get('/about', function(req, res) {
 
 app.get('/contact', function(req, res) {
     res.render("contact", {});
+});
+
+app.get('/finalResults', function(req, res) {
+    res.render('finalResults', {});
+});
+
+
+//POST METHODS
+app.post('/', function(req, res) {
+    let choice = req.body.choice;
+    let playerId = i % numPlayers;
+    if (choice === "Ink") {
+      //ink the player
+      ink(playerId);
+    } else if (choice !== "Pass") {
+      //move the player to given room
+      switchToRoom(playerId, choice);
+    }
+
+    do {
+      i++;
+      if ((i % numPlayers) === 0) {
+        roundsRemaining--;
+      }
+      if (roundsRemaining === -1) {
+        res.redirect('/finalResults');
+      }
+    } while (players[i % numPlayers].inked);
+
+    res.redirect('/');
 });
 
 
@@ -103,7 +144,6 @@ function Room(capacity, occupants) {
 }
 
 
-
 //Gets available rooms that players CAN switch to
 //input: id: (Number)
 //output: array of available rooms ([Strings])
@@ -112,24 +152,23 @@ function roomsOnTheBoard(id) {
 
   //check for inks
   Object.entries(rooms).forEach(function(room) {
-    if (room[1].occupants.length < room[1].capacity) {
-      //open spot in room
-      availableRooms.push(room[0]);
-    } else {
-      //check if player to enter has better seniority than an inhabitant
-      // let worstSeniorityInRoom = Math.max.apply(Math, room[1].occupants);
-      // if (player < worstSeniorityInRoom) {
-      //   availableRooms.push(room[0]);
-      // }
-      let isAvailable = false;
-      for (var i = 0; i < room[1].occupants.length; i++) {
-        if (id < room[1].occupants[i] && !room[1].occupants[i].inked) {
-          isAvailable = true;
-        }
-      }
-
-      if (isAvailable) {
+    //make sure player is not currently in that room
+    if (!(players[id].currRoom === room[0])) {
+      if (room[1].occupants.length < room[1].capacity) {
+        //open spot in room
         availableRooms.push(room[0]);
+      } else {
+        //finds if player in room w/ lower seniority & !inked
+        let isAvailable = false;
+        for (var i = 0; i < room[1].occupants.length; i++) {
+          if (id < room[1].occupants[i] && !room[1].occupants[i].inked) {
+            isAvailable = true;
+          }
+        }
+
+        if (isAvailable) {
+          availableRooms.push(room[0]);
+        }
       }
     }
   });
@@ -138,68 +177,45 @@ function roomsOnTheBoard(id) {
 }
 
 
-
-//inputs:
-//id: Number (seniority)
-//room: String (room name)
-//return: void
-
-//future: handle kicking someone out (last round?)
-function switchToRoom(id, room, isInking) {
+//switches given player to given room
+function switchToRoom(id, room) {
   let player = players[id];
-  let oldRoom = null;
-  if (player.currRoom !== null) {
-    oldRoom = rooms[player.currRoom];
-  }
   let destRoom = rooms[room]; //destination Room Object
 
-  //already in room
-  if (player.currRoom === room) {
-    return;
+  //remove player from his room before moving him to new room
+  if (player.currRoom !== null) {
+    let oldRoom = rooms[player.currRoom];
+    let indexToSplice = 0;
+    for (var i = 0; i < oldRoom.occupants.length; i++) {
+      if (oldRoom.occupants[i] === id) {
+        indexToSplice = i;
+      }
+    }
+    oldRoom.occupants.splice(indexToSplice, 1);
   }
-  //open space in room
+
+  //open space in rooms
   if (destRoom.occupants.length < destRoom.capacity) {
     destRoom.occupants.push(id);
     player.currRoom = room;
-  } else { //check if can kick out lower seniority noob
+  } else { //find & kick out lowest seniority without the inkies
 
-    //find lowest seniority that is not inked
+    //get the worst seniority/index that isn't inked
     let worstSeniorityInRoom = 0;
+    let indexToReplace = 0;
     for (var i = 0; i < destRoom.occupants.length; i++) {
       if (destRoom.occupants[i] > worstSeniorityInRoom && !destRoom.occupants[i].inked) {
         worstSeniorityInRoom = destRoom.occupants[i];
+        indexToReplace = i;
       }
     }
-    if (!isInking) {
-      //kick out the noob if we can
-      for (var i = 0; i < destRoom.occupants.length; i++) {
-        if (destRoom.occupants[i] === worstSeniorityInRoom && worstSeniorityInRoom > id) {
-          players[worstSeniorityInRoom].currRoom = null;
-          player.currRoom = room;
-          destRoom.occupants[i] = id;
-        }
-      }
-    } else { //is Inking
-      //kick the noob out regardless
-      for (var i = 0; i < destRoom.occupants.length; i++) {
-        if (destRoom.occupants[i] === worstSeniorityInRoom) {
-          players[worstSeniorityInRoom].currRoom = null;
-          player.currRoom = room;
-          destRoom.occupants[i] = id;
-        }
-      }
-    }
+
+    destRoom.occupants[indexToReplace] = id; // replace kicked out noob in room array
+    players[worstSeniorityInRoom].currRoom = null; //kicked out player to the VOID
+    players[id].currRoom = room; // players currRoom = room
+
   }
 
-  if (oldRoom !== destRoom && oldRoom !== null) {
-    let indexToRemove = 0;
-    for (var i = 0; i < oldRoom.occupants.length; i++) {
-      if (oldRoom.occupants[i] === id) {
-        indexToRemove = i;
-      }
-    }
-    oldRoom.occupants.splice(indexToRemove, 1);
-  }
 }
 
 
@@ -209,11 +225,46 @@ function switchToRoom(id, room, isInking) {
 function ink(id) {
   let player = players[id];
 
-  if (player.prevRoom === null) return; //cannot ink if first time playing
-  let room = rooms[player.prevRoom];
+  //already in correct room, just ink and return
+  if (player.prevRoom === player.currRoom) {
+    player.inked = true;
+    return;
+  }
 
-  switchToRoom(id, player.prevRoom, true);
+  let destRoom = rooms[player.prevRoom];
+
+  //remove player from his room before moving him to new room
+  if (player.currRoom !== null) {
+    let oldRoom = rooms[player.currRoom];
+    let indexToSplice = 0;
+    for (var i = 0; i < oldRoom.occupants.length; i++) {
+      if (oldRoom.occupants[i] === id) {
+        indexToSplice = i;
+      }
+    }
+    oldRoom.occupants.splice(indexToSplice, 1);
+  }
+
+  if (destRoom.occupants.length < destRoom.capacity) {
+    destRoom.occupants.push(id);
+    player.currRoom = player.prevRoom;
+  } else { //find & kick out lowest seniority without the inkies
+
+    //get the worst seniority/index that isn't inked
+    let worstSeniorityInRoom = 0;
+    let indexToReplace = 0;
+    for (var i = 0; i < destRoom.occupants.length; i++) {
+      if (destRoom.occupants[i] > worstSeniorityInRoom && !destRoom.occupants[i].inked) {
+        worstSeniorityInRoom = destRoom.occupants[i];
+        indexToReplace = i;
+      }
+    }
+
+    destRoom.occupants[indexToReplace] = id; // replace kicked out noob in room array
+    players[worstSeniorityInRoom].currRoom = null; //kicked out player to the VOID
+    players[id].currRoom = players[id].prevRoom; // players currRoom = room
+
+  }
+
   player.inked = true;
-
-  return;
 }
