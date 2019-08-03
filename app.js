@@ -10,65 +10,30 @@ app.use(bodyParser.urlencoded({extended: true}));
 app.use(express.static("public"));
 
 let players = {
-  0: new Player("Rossy", "Wall Street", null, false),
-  1: new Player("Tommy", "Wall Street", null, false),
-  2: new Player("Jake", "Section 80", null, false),
-  3: new Player("Tanner", "Section 80", null, false),
+  0: new Player("Nithin", "Bayou", null, false),
+  1: new Player("Felly", "Bayou", null, false),
+  2: new Player("Jaws", "The Cove", null, false),
+  3: new Player("Conrad", "The Cove", null, false),
+  4: new Player("Rossy", "Wall Street", null, false),
+  5: new Player("Tommy", "Wall Street", null, false),
+  6: new Player("Jake", "Section 80", null, false),
+  7: new Player("Tanner", "Section 80", null, false)
 }; // convert to DB after testing
 
 let numPlayers = Object.keys(players).length;
 
 let rooms = {
   "Wall Street": new Room(2, []),
-  "Section 80": new Room(2, [])
+  "Section 80": new Room(2, []),
+  "The Cove": new Room(2, []),
+  "Bayou": new Room(2, [])
 }; // convert to DB after testing
 
 let resultingRooms = [];
 
 let roundsRemaining = 5;
 
-let i = 0; //iteration (mod by total # players)
-
-
-
-//Game Logic Functions
-
-
-
-
-
-
-
-//Sets up a turn for a player
-function getTurn(id) {
-  let availRooms = roomsOnTheBoard(id);
-  let options = [];
-
-  if (players[id].currRoom !== null) {
-    options.push("Pass");
-  }
-
-  if (availRooms.length !== 0) {
-    options.push("Change Rooms");
-  }
-
-  if (players[id].prevRoom !== null) {
-    options.push("Ink");
-  }
-
-  //["Pass", "Change Rooms", "Ink"]
-
-  return {
-    id: id,
-    name: players[id].name,
-    currRoom: players[id].currRoom,
-    availRooms: availRooms,
-    options: options,
-    roundsRemaining: roundsRemaining,
-    rooms: rooms,
-    players: players
-  };
-}
+let i = 0; //iteration
 
 
 //GET METHODS
@@ -282,4 +247,36 @@ function ink(id) {
   }
 
   player.inked = true;
+}
+
+
+//Sets up a turn for a player
+function getTurn(id) {
+  let availRooms = roomsOnTheBoard(id);
+  let options = [];
+
+  if (players[id].currRoom !== null) {
+    options.push("Pass");
+  }
+
+  if (availRooms.length !== 0) {
+    options.push("Change Rooms");
+  }
+
+  if (players[id].prevRoom !== null) {
+    options.push("Ink");
+  }
+
+  //["Pass", "Change Rooms", "Ink"]
+
+  return {
+    id: id,
+    name: players[id].name,
+    currRoom: players[id].currRoom,
+    availRooms: availRooms,
+    options: options,
+    roundsRemaining: roundsRemaining,
+    rooms: rooms,
+    players: players
+  };
 }
