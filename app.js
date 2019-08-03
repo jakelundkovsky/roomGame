@@ -85,7 +85,10 @@ app.get('/contact', function(req, res) {
 });
 
 app.get('/finalResults', function(req, res) {
-    res.render('finalResults', {});
+    res.render('finalResults', {
+      rooms: rooms,
+      players: players
+    });
 });
 
 
@@ -101,14 +104,26 @@ app.post('/', function(req, res) {
       switchToRoom(playerId, choice);
     }
 
+
+    //need to have a check if all players inked to redirect to results
     do {
       i++;
       if ((i % numPlayers) === 0) {
         roundsRemaining--;
       }
-      if (roundsRemaining === -1) {
+
+      let gameOver = true;
+      Object.entries(players).forEach(function(player) {
+        if (!player[1].inked) {
+          gameOver = false;
+        }
+      });
+
+      //if out of rounds or everyone's inked
+      if (roundsRemaining === -1 || gameOver) {
         res.redirect('/finalResults');
       }
+
     } while (players[i % numPlayers].inked);
 
     res.redirect('/');
