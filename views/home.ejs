@@ -1,8 +1,8 @@
 <%- include('partials/header'); %>
 
 <!-- <h1>Home</h1> -->
-<h1>Rounds Remaining:  <%= roundsRemaining %>.</h1>
-<h2>Your turn, <%= name %>.</h2>
+<h1>Rounds Remaining:  <%= roundsRemaining %>.</h1><br/>
+<h2>Your turn, <%= name %>.</h2></br/>
 <h2>Currently in:
   <%if (currRoom === null) {%>
     <%="THE VOID"%>
@@ -14,52 +14,57 @@
 <!-- Also need to show where everyone else is in the game -->
 <!-- show options based on passed options -->
 
+<div class="col-lg-6">
+  <form action="/roomGame" method="post">
+    <div class="form-check">
+      <h2 class="display-2">Rooms Available:</h2>
 
-<form action="/" method="post">
-  <div class="form-check">
-    <h2 class="display-2">Rooms Available:</h2>
+      <%if (options[0] === "Change Rooms" || options[1] === "Change Rooms") {%>
+        <%availRooms.forEach(function(room) {%>
+          <input class="form-check-input" type="radio" name="choice" value="<%=room%>">
+          <label class="form-check-label"><%= room %></label><br/>
+        <%});%>
+        <br/>
+      <%} else {%>
+        <h4>None!</h4>
+      <%}%>
 
-    <%if (options[0] === "Change Rooms" || options[1] === "Change Rooms") {%>
-      <%availRooms.forEach(function(room) {%>
-        <input class="form-check-input" type="radio" name="choice" value="<%=room%>">
-        <label class="form-check-label"><%= room %></label><br/>
+      <h2 class="display-2">Other Options:</h2>
+
+      <%if (options[0] === "Pass") {%>
+        <input class="form-check-input" type="radio" name="choice" value="Pass" checked>
+        <label class="form-check-label">Pass</label>
+        <br/>
+      <%}%>
+      <%if (options[0] === "Ink" || options[1] === "Ink" || options[2] === "Ink") {%>
+        <input class="form-check-input" type="radio" name="choice" value="Ink">
+        <label class="form-check-label">Ink</label>
+      <%}%>
+      <br>
+      <br>
+    </div>
+
+    <button type="submit" name="button" class="btn btn-primary">Submit</button>
+  </form>
+</div>
+
+<div class="col-lg-6">
+  <h2 class="display-2">Current Rooms:</h2>
+  <%Object.entries(rooms).forEach(function(room) {%>
+    <h3><%=room[0]%></h3>
+    <ul>
+      <%room[1].occupants.forEach(function(id) {%>
+        <li><%=players[id].name%>
+
+            <%if (players[id].inked) {%>
+              : INKED
+            <%}%>
+
+        </li>
       <%});%>
-      <br/>
-    <%} else {%>
-      <h4>None!</h4>
-    <%}%>
+    </ul>
+  <%});%>
+</div>
 
-    <h2 class="display-2">Other Options:</h2>
-
-    <%if (options[0] === "Pass") {%>
-      <input class="form-check-input" type="radio" name="choice" value="Pass" checked>
-      <label class="form-check-label">Pass</label>
-      <br/>
-    <%}%>
-    <%if (options[0] === "Ink" || options[1] === "Ink" || options[2] === "Ink") {%>
-      <input class="form-check-input" type="radio" name="choice" value="Ink">
-      <label class="form-check-label">Ink</label>
-    <%}%>
-    <br>
-    <br>
-  </div>
-
-  <button type="submit" name="button" class="btn btn-primary">Submit</button>
-</form>
-
-<%Object.entries(rooms).forEach(function(room) {%>
-  <h3><%=room[0]%></h3>
-  <ul>
-    <%room[1].occupants.forEach(function(id) {%>
-      <li><%=players[id].name%>
-
-          <%if (players[id].inked) {%>
-            : INKED
-          <%}%>
-
-      </li>
-    <%});%>
-  </ul>
-<%});%>
 
 <%- include('partials/footer'); %>

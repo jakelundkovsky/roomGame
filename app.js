@@ -29,15 +29,18 @@ let rooms = {
   "Bayou": new Room(2, [])
 }; // convert to DB after testing
 
-let resultingRooms = [];
-
-let roundsRemaining = 5;
+let roundsRemaining = 10;
 
 let i = 0; //iteration
 
+// let gameStarted = false;
 
 //GET METHODS
 app.get('/', function(req, res) {
+    res.render("settings", {});
+});
+
+app.get('/roomGame', function(req, res) {
     res.render("home", getTurn(i % numPlayers));
 });
 
@@ -59,6 +62,11 @@ app.get('/finalResults', function(req, res) {
 
 //POST METHODS
 app.post('/', function(req, res) {
+    roundsRemaining = parseInt(req.body.rounds) - 1;
+    res.redirect('/roomGame');
+});
+
+app.post('/roomGame', function(req, res) {
     let choice = req.body.choice;
     let playerId = i % numPlayers;
     if (choice === "Ink") {
@@ -91,7 +99,7 @@ app.post('/', function(req, res) {
 
     } while (players[i % numPlayers].inked);
 
-    res.redirect('/');
+    res.redirect('/roomGame');
 });
 
 
@@ -279,4 +287,23 @@ function getTurn(id) {
     rooms: rooms,
     players: players
   };
+}
+
+
+function resetGame() {
+  i = 0;
+  roundsRemaining = 5;
+
+  //reset players
+  Object.entries(players).forEach(function(player) {
+    player[1].inked = false;
+    player[1].currRoom = null;
+  });
+
+  //reset rooms
+  Object.entries(rooms).forEach(function(room) {
+    rooms[1].occupants = [];
+  });
+
+  res.redirect('/');
 }
