@@ -59,6 +59,10 @@ app.get('/finalResults', function(req, res) {
     });
 });
 
+app.get('/resetGame', function(req, res) {
+    res.render('resetGame', {});
+});
+
 
 //POST METHODS
 app.post('/', function(req, res) {
@@ -102,7 +106,14 @@ app.post('/roomGame', function(req, res) {
     res.redirect('/roomGame');
 });
 
+app.post('/finalResults', function(req, res) {
+    res.redirect('/resetGame');
+});
 
+app.post('/resetGame', function(req, res) {
+    resetGame();
+    res.redirect('/');
+});
 
 app.listen(3000, function() {
   console.log("Running on port 3000.");
@@ -292,7 +303,7 @@ function getTurn(id) {
 
 function resetGame() {
   i = 0;
-  roundsRemaining = 5;
+  roundsRemaining = 10;
 
   //reset players
   Object.entries(players).forEach(function(player) {
@@ -302,8 +313,6 @@ function resetGame() {
 
   //reset rooms
   Object.entries(rooms).forEach(function(room) {
-    rooms[1].occupants = [];
+    room[1].occupants = [];
   });
-
-  res.redirect('/');
 }
